@@ -35,14 +35,15 @@ define(function (require, exports, module) {
         Menus               = brackets.getModule("command/Menus"),
         PreferencesManager  = brackets.getModule("preferences/PreferencesManager"),
         Resizer             = brackets.getModule("utils/Resizer");
-
+    
     // import the CodeMirror vim keymap. Should figure out how to get it
     // from the source. The current method requires a manual update of
     // Vim.js (which has now been altered)
     var Dialog          = require("Dialog"),
         SearchCursor    = require("SearchCursor"),
-        Vim             = require("Vim");
-
+        Vim             = require("Vim"),
+        settings		= require('settings');
+    
     var panelHtml           = require("text!templates/bottom-panel.html"),
         TOGGLE_VIMDERBAR_ID = "fontface.show-vimderbar.view.vimderbar",
         keyList             = [],
@@ -112,6 +113,17 @@ define(function (require, exports, module) {
         EditorManager.resizeEditor();
     }
     
+    function enterVimMode() {
+        var activeEditor = EditorManager.getActiveEditor(),
+            $vimbar = $('#vimderbar');
+        
+        $vimbar.show();
+        CommandManager.get(TOGGLE_VIMDERBAR_ID).setChecked(true);
+        _enableVimderbar(activeEditor);
+        vimActive = true;
+        
+        EditorManager.resizeEditor();
+    }
     
     function init() {
         var $vimderbarPanel,
@@ -134,6 +146,9 @@ define(function (require, exports, module) {
         $vimderbarPanel = $("#vimderbar");
         $vimderbarPanel.hide();
         CommandManager.get(TOGGLE_VIMDERBAR_ID).setChecked(false);
+        if(settings.onByDefault) {
+            enterVimMode();
+        }
     }
     
     init();
