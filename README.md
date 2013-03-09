@@ -1,4 +1,5 @@
-# Vimderbar
+# Brackets Vim Mode
+# Currently under heavy modification from original fork...
 (a play on the German word _wunderbar_)  
 is an extension meant to bring vim-like functionality to Adobe's 
 [Brackets](http://brackets.io).
