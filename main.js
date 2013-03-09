@@ -44,8 +44,7 @@ define(function (require, exports, module) {
         Vim             = require("Vim"),
         settings		= require('settings');
     
-    var panelHtml           = require("text!templates/bottom-panel.html"),
-        TOGGLE_VIMDERBAR_ID = "fontface.show-vimderbar.view.vimderbar",
+    var TOGGLE_VIMDERBAR_ID = "fontface.show-vimderbar.view.vimderbar",
         keyList             = [],
         loaded              = false,
         HEADER_HEIGHT       = 5,
@@ -53,6 +52,8 @@ define(function (require, exports, module) {
         vimActive           = false;
     
     var oldKeys;
+    
+    var $vimStatusInsert;
     
     CodeMirror.commands.vimSave = function (cm) {
         cm.save = CommandManager.execute("file.save");
@@ -72,98 +73,85 @@ define(function (require, exports, module) {
         // (auto focus into editor after ex command overrides qO). @ff. 
     };
     
-    function _enableVimderbar(editor) {
-        var $vimderbar = $("#vimderbar");
-        // output Normal mode in 
-        $vimderbar.children("#mode").text("-- Normal --");
-        
-        if (editor !== null) {
-            // I know that _codeMirror is deprecated, but I couldn't get
-            // this to work in any other way. Will continue to investigate.
-            editor._codeMirror.setOption("extraKeys", null);
-            editor._codeMirror.setOption("showCursorWhenSelecting", true);
-            editor._codeMirror.setOption("keyMap", "vim");
-        }
-    }
-    
-    function _disableVimderbar(editor) {
-        if (editor !== null) {
-            editor._codeMirror.setOption("extraKeys", oldKeys);
-            editor._codeMirror.setOption("showCursorWhenSelecting", false);
-            editor._codeMirror.setOption("keyMap", "default");
-        }
-    }
-    
-    function _handleShowHideVimderbar() {
+    function enterVimMode() {
         var activeEditor = EditorManager.getActiveEditor();
         
-        var $vimderbar = $("#vimderbar");
-        
-        if ($vimderbar.css("display") === "none") {
-            $vimderbar.show();
-            CommandManager.get(TOGGLE_VIMDERBAR_ID).setChecked(true);
-            _enableVimderbar(activeEditor);
-            vimActive = true;
-        } else {
-            $vimderbar.hide();
-            CommandManager.get(TOGGLE_VIMDERBAR_ID).setChecked(false);
-            _disableVimderbar(activeEditor);
-            vimActive = false;
-        }
-        EditorManager.resizeEditor();
-    }
-    
-    function enterVimMode() {
-        var activeEditor = EditorManager.getActiveEditor(),
-            $vimbar = $('#vimderbar');
-        
-        $vimbar.show();
         CommandManager.get(TOGGLE_VIMDERBAR_ID).setChecked(true);
-        _enableVimderbar(activeEditor);
         vimActive = true;
         
         EditorManager.resizeEditor();
+        
+        CodeMirror.Vim.events.trigger('switchMode', 'normal');
+        
+        if (activeEditor !== null) {
+            
+            oldKeys = oldKeys || activeEditor._codeMirror.getOption("extraKeys");
+            // I know that _codeMirror is deprecated, but I couldn't get
+            // this to work in any other way. Will continue to investigate.
+            activeEditor._codeMirror.setOption("extraKeys", null);
+            activeEditor._codeMirror.setOption("showCursorWhenSelecting", true);
+            activeEditor._codeMirror.setOption("keyMap", "vim");
+        }
+    }
+    
+    function exitVimMode() {
+        var activeEditor = EditorManager.getActiveEditor();
+        
+        CommandManager.get(TOGGLE_VIMDERBAR_ID).setChecked(false);
+        vimActive = false;
+        
+        
+        if (activeEditor !== null) {
+            activeEditor._codeMirror.setOption("extraKeys", oldKeys);
+            activeEditor._codeMirror.setOption("showCursorWhenSelecting", false);
+            activeEditor._codeMirror.setOption("keyMap", "default");
+        }
+        
+        EditorManager.resizeEditor();
+    }
+    
+    function toggleVimMode() {
+        if (vimActive) {
+            enterVimMode();
+        } else {
+            exitVimMode();
+        }
     }
     
     function init() {
-        var $vimderbarPanel,
-            s,
-            view_menu;
+        var view_menu;
         
         ExtensionUtils.loadStyleSheet(module, "vimderbar.css");
         // Register function as command
         CommandManager.register("Enable Vimderbar", TOGGLE_VIMDERBAR_ID,
-                                _handleShowHideVimderbar);
+                                toggleVimMode);
         // Add command to View menu, if it exists
         view_menu = Menus.getMenu(Menus.AppMenuBar.VIEW_MENU);
         if (view_menu) {
             view_menu.addMenuItem(TOGGLE_VIMDERBAR_ID);
         }
-        // Add the HTML UI
-        s = Mustache.render(panelHtml);
-        $(".content").append(s);
-        // keep vimderbar off by default
-        $vimderbarPanel = $("#vimderbar");
-        $vimderbarPanel.hide();
-        CommandManager.get(TOGGLE_VIMDERBAR_ID).setChecked(false);
-        if(settings.onByDefault) {
-            enterVimMode();
+       
+        $vimStatusInsert = $('<div id="vim-status-mode">').prependTo('#status-info');
+        
+        if (settings.onByDefault) {
+            vimActive = true;
+            CommandManager.get(TOGGLE_VIMDERBAR_ID).setChecked(true);
+        } else {
+            CommandManager.get(TOGGLE_VIMDERBAR_ID).setChecked(false);
         }
     }
     
     init();
-    setTimeout(function () {
-        // get the default Brackets "extraKeys" so we don't overwrite the settings
-        oldKeys = EditorManager.getActiveEditor()._codeMirror.getOption("extraKeys");
-    }, 1000); // need to wait ~1 second before we can access getActiveEditor();
+    CodeMirror.Vim.events.on('switchMode', function(e, newMode) {
+        $vimStatusInsert.text('-- ' + newMode + ' --');
+    });
     
     // keep an eye on document changing so that the vim keyMap will apply to all files in the window
     $(DocumentManager).on("currentDocumentChange", function () {
-        var activeEditor = EditorManager.getActiveEditor();
         if (vimActive === true) {
-            _enableVimderbar(activeEditor);
+            enterVimMode();
         } else {
-            _disableVimderbar(activeEditor);
+            exitVimMode();
         }
     });
 });
