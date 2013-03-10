@@ -405,7 +405,7 @@
         if (key == 'Esc') {
           // Clear input state and get back to normal mode.
           vim.inputState = new InputState();
-          if (vim.visualMode) {
+          if (vim.visualMode || (cm.getSelection().length && !vim.visualMode)) {
             exitVisualMode(cm, vim);
           }
           return;
@@ -1173,7 +1173,7 @@
 
     var operators = {
       change: function(cm, operatorArgs, vim, curStart, curEnd) {
-        getVimGlobalState().registerController.pushText(
+          getVimGlobalState().registerController.pushText(
             operatorArgs.registerName, 'change', cm.getRange(curStart, curEnd),
             operatorArgs.linewise);
         if (operatorArgs.linewise) {
@@ -1244,7 +1244,7 @@
         cm.setCursor(curOriginal);
       }
     };
-
+      
     var actions = {
       scrollToCursor: function(cm, actionArgs) {
         var lineNum = cm.getCursor().line;
@@ -1484,7 +1484,7 @@
         }
       }
     };
-
+      
     var textObjects = {
       // TODO: lots of possible exceptions that can be thrown here. Try da(
       //     outside of a () block.
@@ -1514,11 +1514,11 @@
         return findBeginningAndEnd(cm, '"', inclusive);
       }
     };
-
+      
     /*
      * Below are miscellaneous utility functions used by vim.js
      */
-
+      
     /**
      * Clips cursor to ensure that line is within the buffer's range
      * If includeLineBreak is true, then allow cur.ch == lineLength.
@@ -1615,7 +1615,7 @@
     function escapeRegex(s) {
       return s.replace(/([.?*+$\[\]\/\\(){}|\-])/g, "\\$1");
     }
-
+      
     function exitVisualMode(cm, vim) {
       vim.visualMode = false;
       vim.visualLine = false;
@@ -1629,7 +1629,7 @@
       }
       events.trigger('switchMode', 'normal');
     }
-
+      
     // Remove any trailing newlines from the selection. For
     // example, with the caret at the start of the last word on the line,
     // 'dw' should word, but not the newline, while 'w' should advance the
@@ -1642,14 +1642,14 @@
         curEnd.ch = lineLength(cm, curEnd.line);
       }
     }
-
+      
     // Expand the selection to line ends.
     function expandSelectionToLine(cm, curStart, curEnd) {
       curStart.ch = 0;
       curEnd.ch = 0;
       curEnd.line++;
     }
-
+      
     function findFirstNonWhiteSpaceCharacter(text) {
       if (!text) {
         return 0;
@@ -1657,12 +1657,12 @@
       var firstNonWS = text.search(/\S/);
       return firstNonWS == -1 ? text.length : firstNonWS;
     }
-
+      
     function expandWordUnderCursor(cm, inclusive, forward, bigWord, noSymbol) {
       var cur = cm.getCursor();
       var line = cm.getLine(cur.line);
       var idx = cur.ch;
-
+        
       // Seek to first word or non-whitespace character, depending on if
       // noSymbol is true.
       var textAfterIdx = line.substring(idx);
@@ -1678,7 +1678,7 @@
       idx += firstMatchedChar;
       textAfterIdx = line.substring(idx);
       var textBeforeIdx = line.substring(0, idx);
-
+        
       var matchRegex;
       // Greedy matchers for the "word" we are trying to expand.
       if (bigWord) {
@@ -1690,7 +1690,7 @@
           matchRegex = /^[^\w\s]+/;
         }
       }
-
+        
       var wordAfterRegex = matchRegex.exec(textAfterIdx);
       var wordStart = idx;
       var wordEnd = idx + wordAfterRegex[0].length - 1;
@@ -1699,15 +1699,15 @@
       if (wordBeforeRegex) {
         wordStart -= wordBeforeRegex[0].length;
       }
-
+        
       if (inclusive) {
         wordEnd++;
       }
-
+        
       return { start: { line: cur.line, ch: wordStart },
         end: { line: cur.line, ch: wordEnd }};
     }
-
+      
     /*
      * Returns the boundaries of the next word. If the cursor in the middle of
      * the word, then returns the boundaries of the current word, starting at
@@ -1730,7 +1730,7 @@
       var line = cm.getLine(lineNum);
       var dir = forward ? 1 : -1;
       var regexps = bigWord ? bigWordRegexp : wordRegexp;
-
+        
       while (true) {
         var stop = (dir > 0) ? line.length : -1;
         var wordStart = stop, wordEnd = stop;
@@ -2058,7 +2058,8 @@
             onKeyDown: options.onKeyDown, onKeyUp: options.onKeyUp });
       }
       else {
-        callback(prompt(shortText, ""));
+//        callback(prompt(shortText, ""));
+          onClose(prompt(shortText, ""));
       }
     }
     function findUnescapedSlashes(str) {

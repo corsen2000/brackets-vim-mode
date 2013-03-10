@@ -39,8 +39,7 @@ define(function (require, exports, module) {
     // import the CodeMirror vim keymap. Should figure out how to get it
     // from the source. The current method requires a manual update of
     // Vim.js (which has now been altered)
-    var Dialog          = require("Dialog"),
-        SearchCursor    = require("SearchCursor"),
+    var SearchCursor    = require("SearchCursor"),
         Vim             = require("Vim"),
         settings		= require('settings');
     
@@ -121,7 +120,6 @@ define(function (require, exports, module) {
     function init() {
         var view_menu;
         
-        ExtensionUtils.loadStyleSheet(module, "vimderbar.css");
         // Register function as command
         CommandManager.register("Enable Vimderbar", TOGGLE_VIMDERBAR_ID,
                                 toggleVimMode);
